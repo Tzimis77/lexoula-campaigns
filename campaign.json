@@ -1,0 +1,16 @@
+{
+  "active": true,
+  "campaign": {
+    "id": "xloh-launch-1",
+    "title": "Δοκίμασε το Xloh! 🤖",
+    "text": "Smart bot για την επιχείρησή σου. Αυτοματοποίησε εργασίες, εξυπηρέτησε πελάτες 24/7.",
+    "cta": "Μάθε περισσότερα →",
+    "url": "https://xloh.gr",
+    "image": "",
+    "trigger": "end",
+    "show_on": "both",
+    "active_from": "2026-05-24",
+    "active_until": "2026-06-07",
+    "frequency": "daily"
+  }
+}
