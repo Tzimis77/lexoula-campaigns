@@ -1,16 +1,17 @@
 {
   "active": true,
   "campaign": {
-    "id": "smart-bot-june",
-    "title": "Smart Bot gr 🤖",
-    "text": "Smart bot για την επιχείρησή σου. Αυτοματοποίησε εργασίες, εξυπηρέτησε πελάτες 24/7.",
-    "cta": "Μάθε περισσότερα →",
-    "url": "https://smartbot.gr",
+    "id": "advertise-here-1",
+    "title": "Διαφημίσου εδώ! 📣",
+    "text": "Φτάσε σε εκατοντάδες Έλληνες χρήστες καθημερινά. Επικοινώνησε μαζί μας για τιμές και διαθεσιμότητα.",
+    "cta": "info@smartbot.gr →",
+    "url": "mailto:info@smartbot.gr",
     "image": "",
     "trigger": "end",
     "show_on": "both",
     "active_from": "2026-05-24",
-    "active_until": "2027-06-07",
+    "active_until": "2026-06-07",
     "frequency": "daily"
   }
 }
+
