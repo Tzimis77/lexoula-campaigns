@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Λεξούλα">
+<meta name="description" content="Βρες τη λέξη της ημέρας στα Ελληνικά!">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Λεξούλα — Ελληνικό Wordle</title>
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --surface: #1a1a2e;
+    --border: #2a2a4a;
+    --text: #e8e8f0;
+    --text-muted: #8888aa;
+    --correct: #4a9e6b;
+    --present: #c9962a;
+    --absent: #3a3a5a;
+    --key-bg: #2a2a4a;
+    --key-text: #e8e8f0;
+    --accent: #7c6bff;
+    --accent2: #ff6b9d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Georgia', serif;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+    touch-action: manipulation;
+  }
+
+  header {
+    width: 100%;
+    max-width: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-size: 22px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .header-btns { display: flex; gap: 8px; }
+
+  .icon-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 22px;
+    padding: 4px;
+    border-radius: 6px;
+    transition: color 0.2s;
+    line-height: 1;
+  }
+  .icon-btn:hover { color: var(--text); }
+
+  #toast {
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: var(--text);
+    color: var(--bg);
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 15px;
+    font-weight: bold;
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 999;
+    white-space: nowrap;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .game-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 16px;
+    width: 100%;
+  }
+
+  #grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .row {
+    display: flex;
+    gap: 6px;
+  }
+
+  .cell {
+    width: 58px;
+    height: 58px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    font-weight: bold;
+    font-family: 'Georgia', serif;
+    color: var(--text);
+    background: var(--surface);
+    transition: transform 0.1s, border-color 0.2s;
+    position: relative;
+    user-select: none;
+  }
+
+  .cell.filled {
+    border-color: var(--text-muted);
+    animation: pop 0.1s ease;
+  }
+
+  .cell.correct {
+    background: var(--correct);
+    border-color: var(--correct);
+    color: white;
+  }
+
+  .cell.present {
+    background: var(--present);
+    border-color: var(--present);
+    color: white;
+  }
+
+  .cell.absent {
+    background: var(--absent);
+    border-color: var(--absent);
+    color: var(--text-muted);
+  }
+
+  .cell.shake {
+    animation: shake 0.4s ease;
+  }
+
+  .cell.flip {
+    animation: flip 0.5s ease forwards;
+  }
+
+  @keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.12); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  @keyframes flip {
+    0% { transform: rotateX(0deg); }
+    50% { transform: rotateX(-90deg); }
+    100% { transform: rotateX(0deg); }
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+
+  .cell.bounce { animation: bounce 0.4s ease; }
+
+  #keyboard {
+    width: 100%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 0 8px;
+  }
+
+  .kb-row {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .key {
+    height: 56px;
+    min-width: 36px;
+    padding: 0 4px;
+    border: none;
+    border-radius: 6px;
+    background: var(--key-bg);
+    color: var(--key-text);
+    font-size: 16px;
+    font-family: 'Georgia', serif;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s, color 0.3s, transform 0.1s;
+    user-select: none;
+    flex: 1;
+    max-width: 44px;
+  }
+
+  .key.wide { max-width: 64px; font-size: 12px; }
+  .key:active { transform: scale(0.94); }
+
+  .key.correct { background: var(--correct); color: white; }
+  .key.present { background: var(--present); color: white; }
+  .key.absent { background: var(--absent); color: var(--text-muted); }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 24px;
+    max-width: 360px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .modal h2 {
+    font-size: 20px;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+
+  .modal p {
+    color: var(--text-muted);
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+
+  .modal .answer-reveal {
+    font-size: 28px;
+    font-weight: bold;
+    letter-spacing: 4px;
+    color: var(--correct);
+    margin: 12px 0;
+  }
+
+  .modal-btn {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 28px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 16px;
+    width: 100%;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .modal-btn:hover { opacity: 0.9; }
+  .modal-btn:active { transform: scale(0.98); }
+  .modal-btn.secondary {
+    background: var(--key-bg);
+    color: var(--text);
+    margin-top: 8px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 16px 0;
+  }
+
+  .stat-box {
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 10px 4px;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--text);
+  }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    line-height: 1.3;
+  }
+
+  .countdown {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+
+  .countdown span {
+    font-weight: bold;
+    color: var(--text);
+  }
+
+  /* Instructions */
+  .example-row {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    margin: 10px 0;
+  }
+
+  .ex-cell {
+    width: 42px;
+    height: 42px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: bold;
+    color: white;
+    border: 2px solid var(--border);
+  }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 360px) {
+    .cell { width: 50px; height: 50px; font-size: 22px; }
+    .key { height: 48px; font-size: 14px; }
+  }
+
+  @media (max-height: 700px) {
+    .cell { width: 50px; height: 50px; font-size: 22px; }
+    .key { height: 48px; }
+    .game-area { gap: 12px; }
+  }
+
+  /* Campaign popup */
+  #campaign-modal .modal {
+    border: 1px solid var(--accent);
+    position: relative;
+  }
+  .campaign-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 12px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+  .campaign-title {
+    font-size: 22px;
+    font-weight: bold;
+    color: var(--text);
+    margin: 8px 0 10px;
+  }
+  .campaign-text {
+    color: var(--text-muted);
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 4px;
+  }
+  .campaign-cta {
+    display: block;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 14px 28px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 18px;
+    width: 100%;
+    text-decoration: none;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .campaign-cta:hover { opacity: 0.9; }
+  .campaign-cta:active { transform: scale(0.98); }
+  .campaign-skip {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 12px;
+    width: 100%;
+    padding: 6px;
+  }
+  .campaign-skip:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">ΛΕΞΟΥΛΑ</div>
+  <div class="header-btns">
+    <button class="icon-btn" onclick="showModal('help')" title="Βοήθεια">?</button>
+    <button class="icon-btn" onclick="showModal('stats')" title="Στατιστικά">📊</button>
+  </div>
+</header>
+
+<div id="toast"></div>
+
+<div class="game-area">
+  <div id="grid"></div>
+  <div id="keyboard"></div>
+</div>
+
+<!-- Help Modal -->
+<div class="modal-overlay hidden" id="help-modal">
+  <div class="modal">
+    <h2>Πώς παίζεται</h2>
+    <p>Βρες τη λέξη σε <strong>6 προσπάθειες</strong>. Κάθε λέξη έχει <strong>5 γράμματα</strong>.</p>
+    <p>Μετά από κάθε προσπάθεια, τα χρώματα δείχνουν πόσο κοντά είσαι:</p>
+
+    <div class="example-row">
+      <div class="ex-cell" style="background:var(--correct); border-color:var(--correct)">Α</div>
+      <div class="ex-cell" style="border-color:var(--border)">Ρ</div>
+      <div class="ex-cell" style="border-color:var(--border)">Κ</div>
+      <div class="ex-cell" style="border-color:var(--border)">Ο</div>
+      <div class="ex-cell" style="border-color:var(--border)">Σ</div>
+    </div>
+    <p>🟩 Το <strong>Α</strong> είναι στη σωστή θέση.</p>
+
+    <div class="example-row">
+      <div class="ex-cell" style="border-color:var(--border)">Π</div>
+      <div class="ex-cell" style="background:var(--present); border-color:var(--present)">Ε</div>
+      <div class="ex-cell" style="border-color:var(--border)">Τ</div>
+      <div class="ex-cell" style="border-color:var(--border)">Ρ</div>
+      <div class="ex-cell" style="border-color:var(--border)">Α</div>
+    </div>
+    <p>🟨 Το <strong>Ε</strong> υπάρχει αλλά σε λάθος θέση.</p>
+
+    <div class="example-row">
+      <div class="ex-cell" style="border-color:var(--border)">Σ</div>
+      <div class="ex-cell" style="border-color:var(--border)">Κ</div>
+      <div class="ex-cell" style="background:var(--absent); border-color:var(--absent)">Υ</div>
+      <div class="ex-cell" style="border-color:var(--border)">Λ</div>
+      <div class="ex-cell" style="border-color:var(--border)">Ο</div>
+    </div>
+    <p>⬛ Το <strong>Υ</strong> δεν υπάρχει στη λέξη.</p>
+
+    <p style="margin-top:12px">Νέα λέξη κάθε μέρα!</p>
+    <button class="modal-btn" onclick="closeModal('help')">Αρχίζω!</button>
+  </div>
+</div>
+
+<!-- Stats Modal -->
+<div class="modal-overlay hidden" id="stats-modal">
+  <div class="modal">
+    <h2>Στατιστικά</h2>
+    <div class="stats-grid" id="stats-display"></div>
+    <div class="countdown" id="next-word-countdown"></div>
+    <button class="modal-btn" onclick="shareResult()" id="share-btn" style="display:none">
+      🔗 Μοιράσου το αποτέλεσμα
+    </button>
+    <button class="modal-btn secondary" onclick="closeModal('stats')">Κλείσιμο</button>
+  </div>
+</div>
+
+<!-- End Game Modal -->
+<div class="modal-overlay hidden" id="end-modal">
+  <div class="modal">
+    <h2 id="end-title"></h2>
+    <p id="end-msg"></p>
+    <div class="answer-reveal" id="end-answer"></div>
+    <div class="stats-grid" id="end-stats-display"></div>
+    <div class="countdown" id="end-countdown"></div>
+    <button class="modal-btn" onclick="shareResult()">🔗 Μοιράσου το αποτέλεσμα</button>
+    <button class="modal-btn secondary" onclick="closeModal('end')">Κλείσιμο</button>
+  </div>
+</div>
+
+<!-- Campaign Modal -->
+<div class="modal-overlay hidden" id="campaign-modal">
+  <div class="modal" style="position:relative; padding-top:32px;">
+    <div class="campaign-badge">ΑΠΟ ΤΟΥΣ ΔΗΜΙΟΥΡΓΟΥΣ</div>
+    <div class="campaign-title" id="campaign-title"></div>
+    <p class="campaign-text" id="campaign-text"></p>
+    <a class="campaign-cta" id="campaign-cta" href="#" target="_blank" rel="noopener"></a>
+    <button class="campaign-skip" onclick="closeCampaign()">Όχι ευχαριστώ</button>
+  </div>
+</div>
+
+<script>
+const WORDS = [
+  "ΑΓΑΠΗ","ΑΓΚΑΛ","ΑΓΟΡΑ","ΑΓΡΙΟ","ΑΔΕΙΑ","ΑΔΙΚΟ","ΑΕΡΙΟ","ΑΘΛΟΣ","ΑΙΓΕΣ","ΑΙΜΟΣ",
+  "ΑΙΩΝΑ","ΑΚΟΜΑ","ΑΚΟΥΩ","ΑΚΡΕΣ","ΑΛΑΤΙ","ΑΛΛΟΣ","ΑΛΟΓΟ","ΑΜΑΞΑ","ΑΜΕΣΑ","ΑΜΜΟΣ",
+  "ΑΜΠΕΛ","ΑΝΑΒΩ","ΑΝΕΜΟ","ΑΝΤΡΑ","ΑΞΙΟΣ","ΑΟΡΙΤ","ΑΠΛΟΣ","ΑΠΟΧΗ","ΑΡΧΩΝ","ΑΣΠΡΟ",
+  "ΑΣΤΡΟ","ΑΥΓΟΣ","ΑΥΛΕΣ","ΑΦΡΙΚ","ΑΧΕΡΟΣ","ΒΑΘΙΑ","ΒΑΡΚΑ","ΒΔΕΛΛ","ΒΕΛΟΣ","ΒΛΕΠΩ",
+  "ΒΟΗΘΩ","ΒΟΥΝΟ","ΓΑΛΕΣ","ΓΑΛΟΣ","ΓΑΜΟΣ","ΓΕΙΤΟ","ΓΕΡΝΩ","ΓΙΑΤΙ","ΓΙΓΑΣ","ΓΙΟΡΤ",
+  "ΓΛΥΚΟ","ΓΝΩΜΗ","ΓΟΗΤΟ","ΓΟΝΙΟ","ΓΟΡΓΟ","ΔΑΙΜΩ","ΔΑΣΟΣ","ΔΕΙΓΜ","ΔΕΛΤΑ","ΔΕΝΤΡ",
+  "ΔΕΣΜΑ","ΔΗΛΟΣ","ΔΙΑΒΑ","ΔΙΑΚΟ","ΔΙΚΑΙ","ΔΟΛΙΟ","ΔΟΝΤΙ","ΔΡΑΚΟ","ΔΡΟΜΟ","ΔΥΝΑΜ",
+  "ΔΥΤΙΚ","ΕΓΩΙΣ","ΕΔΑΦΟ","ΕΙΚΟΝ","ΕΚΕΙΣ","ΕΚΤΟΣ","ΕΛΑΤΟ","ΕΛΙΕΣ","ΕΛΚΟΣ","ΕΛΛΗΝ",
+  "ΕΜΕΙΣ","ΕΝΑΝΤ","ΕΞΟΔΑ","ΕΞΟΧΗ","ΕΠΑΘΑ","ΕΠΟΧΗ","ΕΡΓΟΝ","ΕΣΕΙΣ","ΕΣΤΙΑ","ΕΥΧΕΣ",
+  "ΕΦΤΑΣ","ΕΧΘΡΕ","ΖΑΛΗΝ","ΖΕΣΤΗ","ΖΗΛΙΑ","ΖΩΟΤΡ","ΗΘΙΚΟ","ΗΡΩΑΣ","ΘΑΛΑΣ","ΘΑΜΝΟ",
+  "ΘΕΑΤΡ","ΘΕΜΕΛ","ΘΕΟΣ","ΘΕΡΜΟ","ΘΗΤΕΣ","ΙΚΑΝΟ","ΙΠΠΟΣ","ΙΡΙΔΑ","ΙΣΤΟΡ","ΚΑΘΕΣ",
+  "ΚΑΙΡΟ","ΚΑΛΟΣ","ΚΑΠΝΟ","ΚΑΤΙΑ","ΚΕΦΑΛ","ΚΗΠΟΣ","ΚΛΑΔΙ","ΚΛΕΙΣ","ΚΟΙΛΑ","ΚΟΚΚΟ",
+  "ΚΟΛΑΙ","ΚΟΜΜΑ","ΚΟΣΜΟ","ΚΟΥΠΑ","ΚΡΑΝΟ","ΚΡΑΤΟ","ΚΡΕΑΣ","ΚΡΙΘΗ","ΚΡΥΟΣ","ΚΤΗΜΑ",
+  "ΚΥΜΑ","ΚΥΝΟΣ","ΛΑΒΕΣ","ΛΑΘΟΣ","ΛΑΙΚΑ","ΛΑΙΜΟ","ΛΑΟΣ","ΛΕΞΗΣ","ΛΗΣΤΗ","ΛΙΓΟΣ",
+  "ΛΙΜΝΗ","ΛΟΓΟΣ","ΛΟΥΛΟ","ΛΥΚΟΣ","ΜΑΚΡΟ","ΜΑΛΛΙ","ΜΑΝΙΑ","ΜΑΡΤΥ","ΜΑΧΑΙ","ΜΕΛΟΣ",
+  "ΜΕΡΟΣ","ΜΕΣΟΣ","ΜΕΤΡΟ","ΜΗΛΟΝ","ΜΗΝΑΣ","ΜΙΚΡΟ","ΜΟΙΡΑ","ΜΟΛΟΣ","ΜΟΝΟΣ","ΜΥΑΛΟ",
+  "ΝΑΥΤΗ","ΝΕΚΡΟ","ΝΕΡΟΝ","ΝΗΣΟΣ","ΝΙΚΗΣ","ΝΟΗΜΑ","ΝΟΙΚΟ","ΝΟΜΟΣ","ΝΥΧΤΑ","ΞΕΝΟΣ",
+  "ΞΥΛΟΝ","ΟΔΗΓΑ","ΟΙΚΟΣ","ΟΛΟΣ","ΟΜΑΔΑ","ΟΡΕΞΗ","ΟΡΙΟΣ","ΟΥΡΑΣ","ΟΦΕΛΗ","ΠΑΘΟΣ",
+  "ΠΑΙΔΙ","ΠΑΙΚΤ","ΠΑΛΙΑ","ΠΑΡΕΑ","ΠΑΤΗΣ","ΠΑΤΡΑ","ΠΕΔΙΟ","ΠΕΛΑΓ","ΠΕΝΗΣ","ΠΕΡΒΑ",
+  "ΠΕΣΑΝ","ΠΗΓΑΝ","ΠΙΚΡΑ","ΠΙΝΑΚ","ΠΙΣΤΗ","ΠΛΑΤΗ","ΠΛΟΙΟ","ΠΟΙΟΣ","ΠΟΛΕΜ","ΠΟΛΙΣ",
+  "ΠΟΝΤΟ","ΠΟΤΕΣ","ΠΟΤΗΡ","ΠΡΕΠΕ","ΠΥΡΑΣ","ΡΙΖΕΣ","ΡΟΛΟΙ","ΡΟΥΧΑ","ΣΒΕΣΤ","ΣΕΛΑΓ",
+  "ΣΕΛΙΔ","ΣΗΜΑΙ","ΣΙΓΑΝ","ΣΙΤΟΣ","ΣΚΕΨΗ","ΣΚΟΠΟ","ΣΚΟΤΟ","ΣΚΥΛΟ","ΣΟΦΙΑ","ΣΠΑΘΙ",
+  "ΣΠΙΤΙ","ΣΤΑΘΜ","ΣΤΑΧΥ","ΣΤΙΓΜ","ΣΤΟΛΗ","ΣΤΟΜΑ","ΣΦΥΡΙ","ΣΧΕΔΟ","ΣΧΟΛΗ","ΤΑΞΙΔ",
+  "ΤΑΞΙΣ","ΤΕΛΟΣ","ΤΕΧΝΗ","ΤΙΜΗΣ","ΤΟΙΧΟ","ΤΟΠΟΣ","ΤΡΑΒΩ","ΤΡΙΤΗ","ΤΥΧΗΣ","ΥΔΑΤΑ",
+  "ΥΛΙΚΟ","ΥΠΝΟΣ","ΥΨΟΣ","ΦΑΡΜΑ","ΦΕΓΓΑ","ΦΙΛΟΣ","ΦΛΟΓΑ","ΦΟΒΟΣ","ΦΥΛΛΟ","ΦΩΝΗΣ",
+  "ΦΩΤΙΑ","ΧΑΙΡΕ","ΧΑΡΤΗ","ΧΑΡΩΠ","ΧΕΡΙΑ","ΧΙΛΙΟ","ΧΙΟΝΙ","ΧΟΡΟΣ","ΧΡΟΝΟ","ΧΡΩΜΑ",
+  "ΧΩΡΑΣ","ΨΑΡΙΑ","ΨΗΦΟΣ","ΨΥΧΗΣ","ΩΡΑΙΟ","ΩΡΕΣ"
+];
+
+const VALID_EXTRA = [
+  "ΑΓΙΟΣ","ΑΓΚΩΝ","ΑΔΕΛΦ","ΑΔΥΝΑ","ΑΗΔΙΑ","ΑΙΘΕΡ","ΑΙΧΜΗ","ΑΚΑΡΠ","ΑΚΟΥΜ","ΑΛΛΩΣ",
+  "ΑΛΥΧΤ","ΑΜΦΙΒ","ΑΝΑΡΧ","ΑΝΟΔΟ","ΑΝΤΙΘ","ΑΠΛΩΣ","ΑΠΟΒΑ","ΑΠΟΠΕ","ΑΡΕΣΕ","ΑΡΘΡΟ",
+  "ΑΡΘΡΩ","ΑΡΙΘΜ","ΑΡΝΙΟ","ΑΡΠΑΓ","ΑΣΤΕΣ","ΑΣΤΥΣ","ΑΤΟΜΟ","ΑΤΥΧΟ","ΑΥΤΟΣ","ΒΑΘΜΟ",
+  "ΒΑΛΤΕ","ΒΑΡΕΩ","ΒΑΡΙΕ","ΒΓΑΛΕ","ΒΙΒΛΙ","ΒΙΩΝΩ","ΒΟΗΘΑ","ΒΟΥΛΗ","ΓΑΝΤΙ","ΓΕΜΙΖ",
+  "ΓΕΦΥΡ","ΓΛΩΣΣ","ΓΝΩΣΤ","ΓΟΗΤΕ","ΔΑΓΚΩ","ΔΑΚΡΥ","ΔΑΚΤΥ","ΔΕΙΛΟ","ΔΕΣΜΟ","ΔΕΧΤΩ",
+  "ΔΙΝΕΙ","ΔΟΛΟΦ","ΔΥΣΚΟ","ΕΘΙΜΟ","ΕΚΛΕΓ","ΕΚΠΑΙ","ΕΚΤΕΛ","ΕΛΕΥΘ","ΕΜΠΡΟ","ΕΝΑΡΞ","ΕΠΟΠΤ",
+];
+
+const ALL_VALID = new Set([...WORDS, ...VALID_EXTRA]);
+
+const KEYBOARD_LAYOUT = [
+  ['Ε','Ρ','Τ','Υ','Θ','Ι','Ο','Π'],
+  ['Α','Σ','Δ','Φ','Γ','Η','Ξ','Κ','Λ'],
+  ['ENTER','Ζ','Χ','Ψ','Ω','Β','Ν','Μ','⌫']
+];
+
+const MAX_GUESSES = 6;
+const WORD_LENGTH = 5;
+
+function getDayIndex() {
+  const start = new Date('2024-01-01');
+  const now = new Date();
+  return Math.floor((now - start) / 86400000);
+}
+
+function getTodaysWord() {
+  return WORDS[getDayIndex() % WORDS.length];
+}
+
+let state = loadState();
+let targetWord = getTodaysWord();
+let currentRow = state.guesses.length;
+let currentInput = [];
+let gameOver = state.won || state.guesses.length >= MAX_GUESSES;
+let keyColors = {};
+
+function loadState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('lexoula_state') || '{}');
+    const today = getDayIndex();
+    if (saved.day !== today) {
+      return { day: today, guesses: [], won: false };
+    }
+    return saved;
+  } catch { return { day: getDayIndex(), guesses: [], won: false }; }
+}
+
+function saveState() {
+  localStorage.setItem('lexoula_state', JSON.stringify(state));
+}
+
+function loadStats() {
+  try {
+    return JSON.parse(localStorage.getItem('lexoula_stats') || '{"played":0,"wins":0,"streak":0,"maxStreak":0,"dist":[0,0,0,0,0,0]}');
+  } catch { return {played:0,wins:0,streak:0,maxStreak:0,dist:[0,0,0,0,0,0]}; }
+}
+
+function saveStats(stats) {
+  localStorage.setItem('lexoula_stats', JSON.stringify(stats));
+}
+
+function buildGrid() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  for (let r = 0; r < MAX_GUESSES; r++) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.id = `row-${r}`;
+    for (let c = 0; c < WORD_LENGTH; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.id = `cell-${r}-${c}`;
+      row.appendChild(cell);
+    }
+    grid.appendChild(row);
+  }
+}
+
+function buildKeyboard() {
+  const kb = document.getElementById('keyboard');
+  kb.innerHTML = '';
+  KEYBOARD_LAYOUT.forEach(row => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'kb-row';
+    row.forEach(key => {
+      const btn = document.createElement('button');
+      btn.className = 'key' + (key === 'ENTER' || key === '⌫' ? ' wide' : '');
+      btn.textContent = key === 'ENTER' ? '↵' : key;
+      btn.dataset.key = key;
+      btn.id = `key-${key}`;
+      btn.addEventListener('click', () => handleKey(key));
+      rowEl.appendChild(btn);
+    });
+    kb.appendChild(rowEl);
+  });
+}
+
+function setCell(row, col, letter, cls) {
+  const cell = document.getElementById(`cell-${row}-${col}`);
+  if (!cell) return;
+  cell.textContent = letter || '';
+  cell.className = 'cell' + (cls ? ` ${cls}` : '') + (letter ? ' filled' : '');
+}
+
+function replayGuesses() {
+  keyColors = {};
+  state.guesses.forEach((guess, r) => {
+    const result = evaluate(guess, targetWord);
+    for (let c = 0; c < WORD_LENGTH; c++) {
+      setCell(r, c, guess[c], result[c]);
+      updateKeyColor(guess[c], result[c]);
+    }
+  });
+  applyKeyColors();
+  if (state.guesses.length > 0) currentRow = state.guesses.length;
+}
+
+function normalize(str) {
+  return str.toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+function evaluate(guess, target) {
+  const g = normalize(guess).split('');
+  const t = normalize(target).split('');
+  const result = Array(WORD_LENGTH).fill('absent');
+  const used = Array(WORD_LENGTH).fill(false);
+
+  for (let i = 0; i < WORD_LENGTH; i++) {
+    if (g[i] === t[i]) {
+      result[i] = 'correct';
+      used[i] = true;
+    }
+  }
+  for (let i = 0; i < WORD_LENGTH; i++) {
+    if (result[i] === 'correct') continue;
+    for (let j = 0; j < WORD_LENGTH; j++) {
+      if (!used[j] && g[i] === t[j]) {
+        result[i] = 'present';
+        used[j] = true;
+        break;
+      }
+    }
+  }
+  return result;
+}
+
+function updateKeyColor(letter, color) {
+  const priority = { correct: 3, present: 2, absent: 1 };
+  if (!keyColors[letter] || priority[color] > priority[keyColors[letter]]) {
+    keyColors[letter] = color;
+  }
+}
+
+function applyKeyColors() {
+  Object.entries(keyColors).forEach(([letter, color]) => {
+    const key = document.getElementById(`key-${letter}`);
+    if (key) {
+      key.className = `key${color === 'absent' || color === 'correct' || color === 'present' ? ' ' + color : ''}` +
+        (letter === 'ENTER' || letter === '⌫' ? ' wide' : '');
+    }
+  });
+}
+
+function handleKey(key) {
+  if (gameOver) return;
+  if (key === '⌫' || key === 'Backspace') {
+    if (currentInput.length > 0) {
+      currentInput.pop();
+      setCell(currentRow, currentInput.length, '', '');
+    }
+    return;
+  }
+  if (key === 'ENTER' || key === 'Enter') {
+    submitGuess();
+    return;
+  }
+  if (/^[ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ]$/.test(key) && currentInput.length < WORD_LENGTH) {
+    currentInput.push(key);
+    setCell(currentRow, currentInput.length - 1, key, '');
+  }
+}
+
+function showToast(msg, duration = 1800) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function shakeRow(row) {
+  const cells = document.querySelectorAll(`#row-${row} .cell`);
+  cells.forEach(c => { c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake'); });
+  setTimeout(() => cells.forEach(c => c.classList.remove('shake')), 500);
+}
+
+function revealRow(row, result, guess, onDone) {
+  const delay = 350;
+  for (let c = 0; c < WORD_LENGTH; c++) {
+    const cell = document.getElementById(`cell-${row}-${c}`);
+    const colorClass = result[c];
+    setTimeout(() => {
+      cell.classList.add('flip');
+      setTimeout(() => {
+        cell.className = `cell filled ${colorClass}`;
+        updateKeyColor(guess[c], colorClass);
+        applyKeyColors();
+      }, delay / 2);
+    }, c * delay);
+  }
+  setTimeout(onDone, WORD_LENGTH * delay);
+}
+
+function submitGuess() {
+  if (currentInput.length < WORD_LENGTH) {
+    showToast('Χρειάζονται 5 γράμματα!');
+    shakeRow(currentRow);
+    return;
+  }
+  const guess = currentInput.join('');
+  const guessNorm = normalize(guess);
+  if (!ALL_VALID.has(guessNorm) && !ALL_VALID.has(guess)) {
+    showToast('Άγνωστη λέξη');
+    shakeRow(currentRow);
+    return;
+  }
+
+  const result = evaluate(guess, targetWord);
+  state.guesses.push(guess);
+  saveState();
+
+  revealRow(currentRow, result, guess, () => {
+    const won = result.every(r => r === 'correct');
+    if (won) {
+      state.won = true;
+      saveState();
+      updateStats(true, currentRow + 1);
+      setTimeout(() => bounceRow(currentRow), 100);
+      setTimeout(() => {
+        showToast(['Θαυμάσιο! 🎉', 'Εξαιρετικό! 🌟', 'Μπράβο! 👏', 'Τέλειο! ✨', 'Καλά! 😊', 'Ούφ! 😅'][currentRow], 2000);
+        setTimeout(() => showEndModal(true), 2200);
+      }, 400);
+      gameOver = true;
+    } else if (state.guesses.length >= MAX_GUESSES) {
+      updateStats(false, 0);
+      setTimeout(() => {
+        showToast(targetWord, 3000);
+        setTimeout(() => showEndModal(false), 3200);
+      }, 400);
+      gameOver = true;
+    }
+    currentRow++;
+    currentInput = [];
+  });
+}
+
+function bounceRow(row) {
+  const cells = document.querySelectorAll(`#row-${row} .cell`);
+  cells.forEach((c, i) => {
+    setTimeout(() => { c.classList.add('bounce'); setTimeout(() => c.classList.remove('bounce'), 500); }, i * 100);
+  });
+}
+
+function updateStats(won, guessCount) {
+  const stats = loadStats();
+  stats.played++;
+  if (won) {
+    stats.wins++;
+    stats.streak++;
+    stats.maxStreak = Math.max(stats.maxStreak, stats.streak);
+    if (guessCount >= 1 && guessCount <= 6) stats.dist[guessCount - 1]++;
+  } else {
+    stats.streak = 0;
+  }
+  saveStats(stats);
+}
+
+function getStatsHTML(stats) {
+  const pct = stats.played ? Math.round(stats.wins / stats.played * 100) : 0;
+  return `
+    <div class="stat-box"><div class="stat-num">${stats.played}</div><div class="stat-label">Παιχνίδια</div></div>
+    <div class="stat-box"><div class="stat-num">${pct}%</div><div class="stat-label">Νίκες</div></div>
+    <div class="stat-box"><div class="stat-num">${stats.streak}</div><div class="stat-label">Σερί</div></div>
+    <div class="stat-box"><div class="stat-num">${stats.maxStreak}</div><div class="stat-label">Καλύτερο σερί</div></div>
+  `;
+}
+
+function getCountdownHTML() {
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  const diff = tomorrow - now;
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  return `Επόμενη λέξη σε <span>${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}</span>`;
+}
+
+function showModal(type) {
+  if (type === 'stats') {
+    const stats = loadStats();
+    document.getElementById('stats-display').innerHTML = getStatsHTML(stats);
+    const cd = document.getElementById('next-word-countdown');
+    cd.innerHTML = gameOver ? getCountdownHTML() : '';
+    const shareBtn = document.getElementById('share-btn');
+    shareBtn.style.display = gameOver ? 'block' : 'none';
+  }
+  document.getElementById(`${type}-modal`).classList.remove('hidden');
+}
+
+function closeModal(type) {
+  document.getElementById(`${type}-modal`).classList.add('hidden');
+}
+
+function showEndModal(won) {
+  document.getElementById('end-title').textContent = won ? '🎉 Το βρήκες!' : '😔 Ωχ...';
+  document.getElementById('end-msg').textContent = won
+    ? `Το βρήκες σε ${state.guesses.length} προσπάθει${state.guesses.length === 1 ? 'α' : 'ες'}!`
+    : 'Η λέξη ήταν:';
+  document.getElementById('end-answer').textContent = won ? '' : targetWord;
+  const stats = loadStats();
+  document.getElementById('end-stats-display').innerHTML = getStatsHTML(stats);
+  const cd = document.getElementById('end-countdown');
+  cd.innerHTML = getCountdownHTML();
+  document.getElementById('end-modal').classList.remove('hidden');
+  setInterval(() => {
+    if (!document.getElementById('end-modal').classList.contains('hidden')) {
+      cd.innerHTML = getCountdownHTML();
+    }
+  }, 1000);
+}
+
+function shareResult() {
+  const emoji = { correct: '🟩', present: '🟨', absent: '⬛' };
+  const lines = state.guesses.map(guess => {
+    const result = evaluate(guess, targetWord);
+    return result.map(r => emoji[r]).join('');
+  });
+  const dayNum = getDayIndex();
+  const text = `Λεξούλα #${dayNum} ${state.won ? state.guesses.length : 'X'}/6\n\n${lines.join('\n')}\n\nhttps://lexoula.app`;
+  if (navigator.share) {
+    navigator.share({ text }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(text).then(() => showToast('Αντιγράφηκε! 📋'));
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key;
+  if (k === 'Enter') { handleKey('ENTER'); return; }
+  if (k === 'Backspace') { handleKey('⌫'); return; }
+  const upper = k.toUpperCase();
+  if (/^[ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ]$/.test(upper)) handleKey(upper);
+  // Map Latin to Greek for physical keyboard convenience
+  const latinToGreek = {Q:'Θ',W:'Ω',E:'Ε',R:'Ρ',T:'Τ',Y:'Υ',U:'Θ',I:'Ι',O:'Ο',P:'Π',
+    A:'Α',S:'Σ',D:'Δ',F:'Φ',G:'Γ',H:'Η',J:'Ξ',K:'Κ',L:'Λ',
+    Z:'Ζ',X:'Χ',C:'Ψ',V:'Ω',B:'Β',N:'Ν',M:'Μ'};
+  const mapped = latinToGreek[upper];
+  if (mapped) handleKey(mapped);
+});
+
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.add('hidden'); });
+});
+
+buildGrid();
+buildKeyboard();
+replayGuesses();
+
+if (!localStorage.getItem('lexoula_seen_help')) {
+  localStorage.setItem('lexoula_seen_help', '1');
+  setTimeout(() => showModal('help'), 500);
+}
+
+if (gameOver) {
+  setTimeout(() => {
+    if (state.won) bounceRow(currentRow - 1);
+  }, 300);
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// ─── CAMPAIGN SYSTEM ───────────────────────────────────────────
+// Διάβασε το campaign.json από το GitHub (ή το ίδιο folder)
+// Άλλαξε το URL παρακάτω στο raw GitHub URL σου μετά το deploy
+
+const CAMPAIGN_URL = 'https://cdn.jsdelivr.net/gh/Tzimis77/lexoula-campaigns@main/campaign.json';
+
+async function loadCampaign() {
+  try {
+    const res = await fetch(CAMPAIGN_URL + '?v=' + Date.now());
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.active) return null;
+    const c = data.campaign;
+
+    const now = new Date();
+    const from = c.active_from ? new Date(c.active_from) : null;
+    const until = c.active_until ? new Date(c.active_until + 'T23:59:59') : null;
+    if (from && now < from) return null;
+    if (until && now > until) return null;
+
+    // Frequency check
+    const seenKey = `campaign_seen_${c.id}`;
+    const lastSeen = localStorage.getItem(seenKey);
+    if (c.frequency === 'once' && lastSeen) return null;
+    if (c.frequency === 'daily') {
+      const today = new Date().toDateString();
+      if (lastSeen === today) return null;
+    }
+
+    return c;
+  } catch { return null; }
+}
+
+function showCampaign(c, trigger) {
+  if (c.trigger !== trigger && c.trigger !== 'both') return;
+  document.getElementById('campaign-title').textContent = c.title;
+  document.getElementById('campaign-text').textContent = c.text;
+  const cta = document.getElementById('campaign-cta');
+  cta.textContent = c.cta || 'Μάθε περισσότερα →';
+  cta.href = c.url || '#';
+  document.getElementById('campaign-modal').classList.remove('hidden');
+
+  const seenKey = `campaign_seen_${c.id}`;
+  localStorage.setItem(seenKey, new Date().toDateString());
+}
+
+function closeCampaign() {
+  document.getElementById('campaign-modal').classList.add('hidden');
+}
+
+// Φόρτωσε campaign στο background
+let loadedCampaign = null;
+loadCampaign().then(c => { loadedCampaign = c; });
+
+// Hook: δείξε campaign μετά το τέλος παιχνιδιού
+const _origShowEndModal = showEndModal;
+window.showEndModal = function(won) {
+  _origShowEndModal(won);
+  if (loadedCampaign) {
+    setTimeout(() => showCampaign(loadedCampaign, 'end'), 3500);
+  }
+};
+
+document.getElementById('campaign-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('campaign-modal')) closeCampaign();
+});
+</script>
+</body>
+</html>
