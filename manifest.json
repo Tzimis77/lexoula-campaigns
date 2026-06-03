@@ -1,0 +1,20 @@
+{
+  "name": "Λεξούλα — Ελληνικό Wordle",
+  "short_name": "Λεξούλα",
+  "description": "Βρες τη λέξη της ημέρας στα Ελληνικά!",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f0f1a",
+  "theme_color": "#1a1a2e",
+  "lang": "el",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "categories": ["games", "entertainment"],
+  "screenshots": [
+    { "src": "screenshots/screen1.png", "sizes": "1080x1920", "type": "image/png", "form_factor": "narrow" }
+  ],
+  "prefer_related_applications": false
+}
