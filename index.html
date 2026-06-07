@@ -11,6 +11,14 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <title>Λεξούλα — Ελληνικό Wordle</title>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-QG42YT5TNN"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-QG42YT5TNN');
+</script> 
 <style>
   :root {
     --bg: #0f0f1a;
@@ -987,7 +995,21 @@ function showCampaign(c, trigger) {
   const cta = document.getElementById('campaign-cta');
   cta.textContent = c.cta || 'Μάθε περισσότερα →';
   cta.href = c.url || '#';
+  cta.onclick = () => {
+    gtag('event', 'ad_click', {
+      event_category: 'campaign',
+      event_label: c.id,
+      campaign_title: c.title
+    });
+  };
   document.getElementById('campaign-modal').classList.remove('hidden');
+
+  // Track impression
+  gtag('event', 'ad_impression', {
+    event_category: 'campaign',
+    event_label: c.id,
+    campaign_title: c.title
+  });
 
   const seenKey = `campaign_seen_${c.id}`;
   localStorage.setItem(seenKey, new Date().toDateString());
@@ -995,7 +1017,15 @@ function showCampaign(c, trigger) {
 
 function closeCampaign() {
   document.getElementById('campaign-modal').classList.add('hidden');
+  if (loadedCampaign) {
+    gtag('event', 'ad_dismiss', {
+      event_category: 'campaign',
+      event_label: loadedCampaign.id,
+      campaign_title: loadedCampaign.title
+    });
+  }
 }
+
 
 // Φόρτωσε campaign στο background
 let loadedCampaign = null;
