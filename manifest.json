@@ -1,7 +1,7 @@
 {
-  "name": "Λεξούλα — Ελληνικό Wordle",
-  "short_name": "Λεξούλα",
-  "description": "Βρες τη λέξη της ημέρας στα Ελληνικά!",
+  "name": "Lexoula - Greek Wordle",
+  "short_name": "Lexoula",
+  "description": "Find the word of the day in Greek!",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
