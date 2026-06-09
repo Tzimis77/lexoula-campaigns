@@ -10,7 +10,7 @@
     "trigger": "end",
     "show_on": "both",
     "active_from": "2026-05-24",
-    "active_until": "2026-06-07",
+    "active_until": "2026-10-07",
     "frequency": "daily"
   }
 }
