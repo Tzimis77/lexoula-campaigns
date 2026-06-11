@@ -1004,17 +1004,27 @@ function showCampaign(c, trigger) {
   };
   document.getElementById('campaign-modal').classList.remove('hidden');
 
-  // Track impression
+ // Track impression
   gtag('event', 'ad_impression', {
     event_category: 'campaign',
     event_label: c.id,
     campaign_title: c.title
   });
 
+  // Notify backend
+  fetch('https://smartbots.gr/lexoula/ad-impression', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      campaign_id: c.id,
+      campaign_title: c.title,
+      trigger: trigger
+    })
+  }).catch(() => {});
+
   const seenKey = `campaign_seen_${c.id}`;
   localStorage.setItem(seenKey, new Date().toDateString());
 }
-
 function closeCampaign() {
   document.getElementById('campaign-modal').classList.add('hidden');
   if (loadedCampaign) {
@@ -1025,12 +1035,9 @@ function closeCampaign() {
     });
   }
 }
-
-
 // Φόρτωσε campaign στο background
 let loadedCampaign = null;
 loadCampaign().then(c => { loadedCampaign = c; });
-
 // Hook: δείξε campaign μετά το τέλος παιχνιδιού
 const _origShowEndModal = showEndModal;
 window.showEndModal = function(won) {
@@ -1039,7 +1046,6 @@ window.showEndModal = function(won) {
     setTimeout(() => showCampaign(loadedCampaign, 'end'), 3500);
   }
 };
-
 document.getElementById('campaign-modal').addEventListener('click', e => {
   if (e.target === document.getElementById('campaign-modal')) closeCampaign();
 });
