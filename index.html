@@ -883,6 +883,7 @@ function showModal(type) {
 function closeModal(type) {
   document.getElementById(`${type}-modal`).classList.add('hidden');
 }
+let countdownInterval = null;
 
 function showEndModal(won) {
   document.getElementById('end-title').textContent = won ? '🎉 Το βρήκες!' : '😔 Ωχ...';
@@ -895,7 +896,9 @@ function showEndModal(won) {
   const cd = document.getElementById('end-countdown');
   cd.innerHTML = getCountdownHTML();
   document.getElementById('end-modal').classList.remove('hidden');
-  setInterval(() => {
+  
+  if (countdownInterval) clearInterval(countdownInterval);
+  countdownInterval = setInterval(() => {
     if (!document.getElementById('end-modal').classList.contains('hidden')) {
       cd.innerHTML = getCountdownHTML();
     }
