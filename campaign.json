@@ -4,8 +4,8 @@
     "id": "advertise-here-1",
     "title": "Διαφημίσου εδώ! 📣",
     "text": "Φτάσε σε εκατοντάδες Έλληνες χρήστες καθημερινά. Επικοινώνησε μαζί μας για τιμές και διαθεσιμότητα.",
-    "cta": "info@smartbots.gr →",
-    "url": "https://www.smartbots.gr/smartbots-lyseis"
+    "cta": "Μάθε περισσότερα →",
+    "url": "https://www.smartbots.gr/smartbots-lyseis",
     "image": "",
     "trigger": "end",
     "show_on": "both",
@@ -14,4 +14,3 @@
     "frequency": "daily"
   }
 }
-
