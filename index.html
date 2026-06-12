@@ -898,7 +898,7 @@ function showEndModal(won) {
   document.getElementById('end-modal').classList.remove('hidden');
   
   if (countdownInterval) clearInterval(countdownInterval);
-  countdownInterval = setInterval(() => {
+countdownInterval = setInterval(() => {
     if (!document.getElementById('end-modal').classList.contains('hidden')) {
       cd.innerHTML = getCountdownHTML();
     }
@@ -912,7 +912,7 @@ function shareResult() {
     return result.map(r => emoji[r]).join('');
   });
   const dayNum = getDayIndex();
-  const text = `Λεξούλα #${dayNum} ${state.won ? state.guesses.length : 'X'}/6\n\n${lines.join('\n')}\n\nhttps://lexoula.app`;
+  const text = `Λεξούλα #${dayNum} ${state.won ? state.guesses.length : 'X'}/6\n\n${lines.join('\n')}\n\nhttps://lexoula.smartbots.gr\n\nΑπό: SmartBots.gr | info@smartbots.gr`;
   if (navigator.share) {
     navigator.share({ text }).catch(() => {});
   } else {
