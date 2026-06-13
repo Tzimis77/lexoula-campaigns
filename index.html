@@ -993,38 +993,18 @@ async function loadCampaign() {
 
 function showCampaign(c, trigger) {
   if (c.trigger !== trigger && c.trigger !== 'both') return;
-
   document.getElementById('campaign-title').textContent = c.title;
   document.getElementById('campaign-text').textContent = c.text;
   const cta = document.getElementById('campaign-cta');
   cta.textContent = c.cta || 'Μάθε περισσότερα →';
   cta.href = c.url || '#';
-  
-  // === ΝΕΟ: Tracking για click ===
   cta.onclick = () => {
-    handleCampaignClick(c);
     gtag('event', 'ad_click', {
       event_category: 'campaign',
       event_label: c.id,
       campaign_title: c.title
     });
   };
-
-  document.getElementById('campaign-modal').classList.remove('hidden');
-
-  // Track impression (Google Analytics)
-  gtag('event', 'ad_impression', {
-    event_category: 'campaign',
-    event_label: c.id,
-    campaign_title: c.title
-  });
-
-  // Notify backend (impression)
-  saveCampaignEvent('impression', c);
-
-  const seenKey = `campaign_seen_${c.id}`;
-  localStorage.setItem(seenKey, new Date().toDateString());
-}
   document.getElementById('campaign-modal').classList.remove('hidden');
 
  // Track impression
@@ -1058,28 +1038,6 @@ function closeCampaign() {
     });
   }
 }
-// === ΝΕΟ: Campaign Tracking για Backend ===
-function handleCampaignClick(c) {
-  saveCampaignEvent('click', c);
-}
-
-function saveCampaignEvent(eventType, campaign) {
-  const payload = {
-    type: 'campaign_event',
-    day: getDayIndex(),
-    campaignClicked: eventType === 'click',
-    campaignId: campaign ? campaign.id : 'advertise-here-1',
-    campaignTitle: campaign ? campaign.title : '',
-    timestamp: new Date().toISOString()
-  };
-
-  fetch('/api/save-win', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  }).catch(() => {}); // fire-and-forget
-}
-
 // Φόρτωσε campaign στο background
 let loadedCampaign = null;
 loadCampaign().then(c => { loadedCampaign = c; });
