@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Λεξούλα — Stats</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f0; color: #1a1a1a; padding: 2rem 1rem; }
+    h1 { font-size: 1.4rem; font-weight: 500; margin-bottom: 0.25rem; }
+    .subtitle { font-size: 0.85rem; color: #666; margin-bottom: 2rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 2rem; }
+    .card { background: #fff; border: 0.5px solid #ddd; border-radius: 10px; padding: 1rem 1.25rem; }
+    .card-label { font-size: 12px; color: #888; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .card-value { font-size: 2rem; font-weight: 500; }
+    .card-value.green { color: #1D9E75; }
+    .card-value.blue { color: #185FA5; }
+    .card-value.amber { color: #BA7517; }
+    .card-value.red { color: #A32D2D; }
+    .section-title { font-size: 0.9rem; font-weight: 500; color: #444; margin-bottom: 0.75rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; background: #fff; border-radius: 10px; overflow: hidden; border: 0.5px solid #ddd; }
+    th { text-align: left; padding: 10px 14px; font-weight: 500; color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 0.5px solid #eee; }
+    td { padding: 9px 14px; border-bottom: 0.5px solid #f0f0f0; color: #333; }
+    tr:last-child td { border-bottom: none; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+    .badge.win { background: #EAF3DE; color: #3B6D11; }
+    .badge.lose { background: #FCEBEB; color: #791F1F; }
+    .badge.click { background: #E6F1FB; color: #185FA5; }
+    .refresh { font-size: 0.8rem; color: #aaa; margin-top: 1.5rem; text-align: right; }
+    .error { background: #FCEBEB; color: #791F1F; padding: 1rem; border-radius: 8px; font-size: 0.85rem; }
+    .loading { color: #aaa; font-size: 0.9rem; padding: 2rem 0; }
+  </style>
+</head>
+<body>
+  <h1>Λεξούλα — Stats</h1>
+  <p class="subtitle" id="updated-at">Φορτώνει...</p>
+
+  <div class="grid" id="cards">
+    <div class="card"><div class="card-label">Τερματισμοί</div><div class="card-value" id="total">—</div></div>
+    <div class="card"><div class="card-label">Νίκες</div><div class="card-value green" id="wins">—</div></div>
+    <div class="card"><div class="card-label">Ήττες</div><div class="card-value red" id="losses">—</div></div>
+    <div class="card"><div class="card-label">Ad Clicks</div><div class="card-value blue" id="clicks">—</div></div>
+    <div class="card"><div class="card-label">CTR</div><div class="card-value amber" id="ctr">—</div></div>
+  </div>
+
+  <div style="margin-bottom:2rem">
+    <div class="section-title">Πρόσφατα παιχνίδια</div>
+    <div id="games-container"><div class="loading">Φορτώνει...</div></div>
+  </div>
+
+  <div>
+    <div class="section-title">Πρόσφατα clicks</div>
+    <div id="clicks-container"><div class="loading">Φορτώνει...</div></div>
+  </div>
+
+  <div class="refresh" id="refresh-time"></div>
+
+  <script>
+    function fmt(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      return d.toLocaleDateString('el-GR') + ' ' + d.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    async function loadJSON(url) {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }
+
+    async function load() {
+      try {
+        const [wins, clicks] = await Promise.all([
+          loadJSON('/data/wins.json'),
+          loadJSON('/data/ad-clicks.json')
+        ]);
+
+        const total = wins.length;
+        const wonCount = wins.filter(w => w.won).length;
+        const lossCount = total - wonCount;
+        const clickCount = clicks.length;
+        const ctr = total > 0 ? ((clickCount / total) * 100).toFixed(1) + '%' : '—';
+
+        document.getElementById('total').textContent = total;
+        document.getElementById('wins').textContent = wonCount;
+        document.getElementById('losses').textContent = lossCount;
+        document.getElementById('clicks').textContent = clickCount;
+        document.getElementById('ctr').textContent = ctr;
+
+        // Games table
+        const recent = wins.slice().reverse().slice(0, 20);
+        if (recent.length === 0) {
+          document.getElementById('games-container').innerHTML = '<p style="color:#aaa;font-size:0.85rem">Δεν υπάρχουν δεδομένα ακόμα.</p>';
+        } else {
+          let rows = recent.map(w => `
+            <tr>
+              <td>#${w.day}</td>
+              <td><span class="badge ${w.won ? 'win' : 'lose'}">${w.won ? 'Νίκη' : 'Ήττα'}</span></td>
+              <td>${w.targetWord || '—'}</td>
+              <td>${w.guessesCount || '—'}</td>
+              <td>${fmt(w.receivedAt)}</td>
+            </tr>`).join('');
+          document.getElementById('games-container').innerHTML = `
+            <table>
+              <thead><tr><th>Μέρα</th><th>Αποτέλεσμα</th><th>Λέξη</th><th>Προσπάθειες</th><th>Ώρα</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>`;
+        }
+
+        // Clicks table
+        const recentClicks = clicks.slice().reverse().slice(0, 20);
+        if (recentClicks.length === 0) {
+          document.getElementById('clicks-container').innerHTML = '<p style="color:#aaa;font-size:0.85rem">Δεν υπάρχουν clicks ακόμα.</p>';
+        } else {
+          let rows = recentClicks.map(c => `
+            <tr>
+              <td><span class="badge click">click</span></td>
+              <td>#${c.day || '—'}</td>
+              <td>${c.campaignId || '—'}</td>
+              <td>${fmt(c.receivedAt)}</td>
+            </tr>`).join('');
+          document.getElementById('clicks-container').innerHTML = `
+            <table>
+              <thead><tr><th>Τύπος</th><th>Μέρα</th><th>Campaign</th><th>Ώρα</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>`;
+        }
+
+        document.getElementById('updated-at').textContent = 'Ενημερώθηκε: ' + fmt(new Date().toISOString());
+        document.getElementById('refresh-time').textContent = 'auto-refresh κάθε 60s';
+
+      } catch (e) {
+        document.getElementById('cards').innerHTML = `<div class="error">Σφάλμα φόρτωσης: ${e.message}<br>Βεβαιώσου ότι τα /data/wins.json και /data/ad-clicks.json είναι προσβάσιμα.</div>`;
+      }
+    }
+
+    load();
+    setInterval(load, 60000);
+  </script>
+</body>
+</html>
