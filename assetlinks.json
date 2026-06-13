@@ -1,8 +1,0 @@
-[{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "gr.smartbots.lexoula",
-    "sha256_cert_fingerprints": ["96:D2:C9:45:44:92:DE:11:C2:9D:12:0F:69:26:C1:25:CC:44:22:DF:1E:EF:91:F3:2A:5F:B8:4B:87:29:A6:E9"]
-  }
-}]
