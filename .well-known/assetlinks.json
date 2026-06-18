@@ -1,8 +1,15 @@
-[{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "gr.smartbots.lexoula",
-    "sha256_cert_fingerprints": ["96:D2:C9:45:44:92:DE:11:C2:9D:12:0F:69:26:C1:25:CC:44:22:DF:1E:EF:91:F3:2A:5F:B8:4B:87:29:A6:E9"]
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "gr.smartbots.lexoula",
+      "sha256_cert_fingerprints": [
+        "96:D2:C9:45:44:92:DE:11:C2:9D:12:0F:69:26:C1:25:CC:44:22:DF:1E:EF:91:F3:2A:5F:B8:4B:87:29:A6:E9",
+        "0F:87:FC:14:82:A0:0D:29:D0:D5:58:F8:1D:3F:FD:79:09:26:6B:1B:54:23:66:C4:16:73:B4:B1:8A:B2:A3:0A"
+      ]
+    }
   }
-}]
+]
