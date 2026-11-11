@@ -1,0 +1,87 @@
+name: Update Greek wordlist
+
+on:
+  push:
+    paths:
+      - 'data/**'                    # όταν αλλάζει το raw wordlist
+      - 'scripts/clean_greek_words.py'
+      - '.github/workflows/update-wordlist.yml'
+  schedule:
+    - cron: '0 3 1 * *'              # 1η κάθε μήνα, 03:00 UTC — προαιρετικό
+  workflow_dispatch:                  # manual trigger από το UI
+
+permissions:
+  contents: write                     # για να κάνει commit
+
+concurrency:
+  group: wordlist-update
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Prepare raw wordlist (αν είναι .dic με flags)
+        run: |
+          set -e
+          if [ -f data/el_GR.dic ]; then
+            sed 's|/.*||' data/el_GR.dic > data/el_clean.txt
+          fi
+          ls -lh data/
+
+      - name: Clean & build valid-words.txt
+        run: |
+          set -e
+          INPUT=$(ls data/el_clean.txt data/el_raw.txt data/greek_words.txt 2>/dev/null | head -n1)
+          if [ -z "$INPUT" ]; then
+            echo "❌ Δεν βρέθηκε αρχείο εισόδου στο data/"
+            exit 1
+          fi
+          echo "Χρησιμοποιώ: $INPUT"
+          python scripts/clean_greek_words.py "$INPUT" \
+            -o valid-words.txt \
+            --keep-existing valid-words.txt \
+            --stats
+
+      - name: Sanity check
+        run: |
+          set -e
+          COUNT=$(wc -l < valid-words.txt)
+          echo "Σύνολο λέξεων: $COUNT"
+          if [ "$COUNT" -lt 100 ]; then
+            echo "❌ Πολύ λίγες λέξεις ($COUNT) — abort"
+            exit 1
+          fi
+          # Έλεγχος ότι όλες είναι 5 κεφαλαία ελληνικά
+          BAD=$(grep -cvP '^[ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ]{5}$' valid-words.txt || true)
+          if [ "$BAD" -gt 0 ]; then
+            echo "❌ $BAD γραμμές δεν είναι έγκυρες 5γραμμες"
+            grep -nvP '^[ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ]{5}$' valid-words.txt | head
+            exit 1
+          fi
+
+      - name: Commit if changed
+        run: |
+          set -e
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- valid-words.txt; then
+            echo "ℹ️  Καμία αλλαγή"
+            exit 0
+          fi
+          NEW=$(wc -l < valid-words.txt)
+          OLD=$(git show HEAD:valid-words.txt 2>/dev/null | wc -l || echo 0)
+          DELTA=$((NEW - OLD))
+          git add valid-words.txt
+          git commit -m "chore(words): update valid-words.txt (${NEW} words, ${DELTA:+$DELTA} diff)"
+          git push
