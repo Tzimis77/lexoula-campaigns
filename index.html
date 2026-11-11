@@ -822,8 +822,34 @@ if (gameOver) {
   setTimeout(() => { if (state.won) bounceRow(currentRow - 1); }, 300);
 }
 
+/* ──────────────────────────────────────────────────────────────
+   Service Worker: auto-update + auto-reload
+   ────────────────────────────────────────────────────────────── */
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  // Auto-reload όταν αλλάξει ο controller (νέος SW ενεργός)
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (refreshing) return;
+    refreshing = true;
+    console.log('🔄 Νέος SW — reload');
+    location.reload();
+  });
+
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    // Αν υπάρχει ήδη update σε αναμονή → στείλε SKIP_WAITING
+    if (reg.waiting) {
+      reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    }
+    // Αν βγει νέος SW → στείλε SKIP_WAITING
+    reg.addEventListener('updatefound', () => {
+      const newSW = reg.installing;
+      newSW?.addEventListener('statechange', () => {
+        if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+          newSW.postMessage({ type: 'SKIP_WAITING' });
+        }
+      });
+    });
+  }).catch(() => {});
 }
 
 // ─── CAMPAIGN SYSTEM ───────────────────────────────────────────
