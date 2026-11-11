@@ -1,0 +1,2 @@
+# Στο update-wordlist.yml — ήδη σωστό:
+python scripts/clean_greek_words.py "$INPUT" -o valid-words.txt --keep-existing valid-words.txt --stats
