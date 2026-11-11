@@ -46,3 +46,20 @@ async def log_unknown_word(request: Request):
             "receivedAt": datetime.datetime.now(datetime.UTC).isoformat()
         })
     return {"ok": True}
+# Στο lexoula.py — προσθήκη headers
+from fastapi import Response
+from fastapi.responses import HTMLResponse
+
+@router.get("/", response_class=HTMLResponse)
+async def serve_index():
+    html = Path("index.html").read_text(encoding="utf-8")
+    return Response(
+        content=html,
+        media_type="text/html",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        }
+    )
+
