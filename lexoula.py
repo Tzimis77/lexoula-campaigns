@@ -34,3 +34,15 @@ async def get_stats():
     wins = json.loads(wins_path.read_text()) if wins_path.exists() else []
     clicks = json.loads(clicks_path.read_text()) if clicks_path.exists() else []
     return {"wins": wins, "clicks": clicks}
+
+@router.post("/api/log-unknown-word")
+async def log_unknown_word(request: Request):
+    body = await request.json()
+    word = str(body.get("word", "")).strip().upper()
+    if len(word) == 5 and word.isalpha():
+        append_json("unknown-words.json", {
+            **body,
+            "word": word,
+            "receivedAt": datetime.datetime.now(datetime.UTC).isoformat()
+        })
+    return {"ok": True}
