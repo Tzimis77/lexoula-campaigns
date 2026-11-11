@@ -1,16 +1,14 @@
-// sw.js — Lexoula service worker
-// Αύξησε το CACHE_VERSION σε κάθε deploy (ή αυτόματα μέσω GitHub Action)
-const CACHE_VERSION = 'lexoula-v2';
+// sw.js — Lexoula (server-rendered)
+const CACHE_VERSION = 'lexoula-v3';
 const CACHE = CACHE_VERSION;
 
-// Μόνο στατικά assets — ΟΧΙ index.html, ΟΧΙ API, ΟΧΙ CDN
+// Μόνο στατικά — ΟΧΙ index.html (server-rendered), ΟΧΙ API
 const PRECACHE = [
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png'
 ];
 
-// ─── INSTALL ───
 self.addEventListener('install', e => {
   self.skipWaiting();
   e.waitUntil(
@@ -18,7 +16,6 @@ self.addEventListener('install', e => {
   );
 });
 
-// ─── ACTIVATE: καθάρισε παλιά caches ───
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
@@ -29,41 +26,47 @@ self.addEventListener('activate', e => {
   );
 });
 
-// ─── FETCH ───
 self.addEventListener('fetch', e => {
   const { request } = e;
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;  // CDN, GA κλπ → network
 
-  // Μην αγγίζεις: API, CDN, GA, άλλα origins
-  if (
-    url.origin !== self.location.origin ||
-    url.pathname.startsWith('/api/')
-  ) {
-    return; // default network behavior
+  // API → ποτέ cache
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/lexoula/')) {
+    return;
   }
 
-  // HTML / navigation → NETWORK-FIRST (παίρνει πάντα νέο index.html)
+  // valid-words.txt → network-first (θέλουμε φρέσκο)
+  if (url.pathname.endsWith('valid-words.txt')) {
+    e.respondWith(
+      fetch(request).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(request, copy)).catch(() => {});
+        return res;
+      }).catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // HTML / navigation → network-first
   if (
     request.mode === 'navigate' ||
     url.pathname === '/' ||
     url.pathname.endsWith('.html')
   ) {
     e.respondWith(
-      fetch(request)
-        .then(res => {
-          // Cache το νέο HTML ως fallback για offline
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put(request, copy)).catch(() => {});
-          return res;
-        })
-        .catch(() => caches.match(request)) // offline fallback
+      fetch(request).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(request, copy)).catch(() => {});
+        return res;
+      }).catch(() => caches.match(request))
     );
     return;
   }
 
-  // Λοιπά assets (icons, manifest) → cache-first με background update
+  // Assets → cache-first με background update
   e.respondWith(
     caches.match(request).then(cached => {
       const network = fetch(request).then(res => {
