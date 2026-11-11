@@ -1,13 +1,15 @@
 # routes/lexoula.py
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Response
 from pathlib import Path
-import json, datetime
+import json
+import datetime
 
 router = APIRouter(prefix="/lexoula", tags=["lexoula"])
 
 DATA_DIR = Path("data/lexoula")
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+
 
 def append_json(filename: str, record: dict):
     path = DATA_DIR / filename
@@ -15,17 +17,29 @@ def append_json(filename: str, record: dict):
     data.append(record)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
 
+
+def _now_iso() -> str:
+    """UTC timestamp — αντικαθιστά το deprecated utcnow()."""
+    return datetime.datetime.now(datetime.UTC).isoformat()
+
+
+# ─────────────────────────────────────────────────────────────
+# API endpoints
+# ─────────────────────────────────────────────────────────────
+
 @router.post("/api/save-win")
 async def save_win(request: Request):
     body = await request.json()
-    append_json("wins.json", {**body, "receivedAt": datetime.datetime.utcnow().isoformat()})
+    append_json("wins.json", {**body, "receivedAt": _now_iso()})
     return {"ok": True}
+
 
 @router.post("/api/save-ad-click")
 async def save_ad_click(request: Request):
     body = await request.json()
-    append_json("ad-clicks.json", {**body, "receivedAt": datetime.datetime.utcnow().isoformat()})
+    append_json("ad-clicks.json", {**body, "receivedAt": _now_iso()})
     return {"ok": True}
+
 
 @router.get("/api/stats")
 async def get_stats():
@@ -35,6 +49,7 @@ async def get_stats():
     clicks = json.loads(clicks_path.read_text()) if clicks_path.exists() else []
     return {"wins": wins, "clicks": clicks}
 
+
 @router.post("/api/log-unknown-word")
 async def log_unknown_word(request: Request):
     body = await request.json()
@@ -43,23 +58,25 @@ async def log_unknown_word(request: Request):
         append_json("unknown-words.json", {
             **body,
             "word": word,
-            "receivedAt": datetime.datetime.now(datetime.UTC).isoformat()
+            "receivedAt": _now_iso(),
         })
     return {"ok": True}
-# Στο lexoula.py — προσθήκη headers
-from fastapi import Response
-from fastapi.responses import HTMLResponse
 
-@router.get("/", response_class=HTMLResponse)
-async def serve_index():
-    html = Path("index.html").read_text(encoding="utf-8")
-    return Response(
-        content=html,
-        media_type="text/html",
-        headers={
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            "Pragma": "no-cache",
-            "Expires": "0",
-        }
-    )
 
+# ─────────────────────────────────────────────────────────────
+# Σερβίρει το index.html — ΜΟΝΟ αν το site είναι στο /lexoula/
+# Αν το site είναι στο / (root), βάλε το serve_index στο main.py.
+# ─────────────────────────────────────────────────────────────
+
+# @router.get("/", response_class=Response)
+# async def serve_index():
+#     html = Path("index.html").read_text(encoding="utf-8")
+#     return Response(
+#         content=html,
+#         media_type="text/html",
+#         headers={
+#             "Cache-Control": "no-cache, no-store, must-revalidate",
+#             "Pragma": "no-cache",
+#             "Expires": "0",
+#         }
+#     )
