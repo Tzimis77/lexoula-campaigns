@@ -825,10 +825,6 @@ if (gameOver) {
 /* ──────────────────────────────────────────────────────────────
    Service Worker: auto-update + auto-reload
    ────────────────────────────────────────────────────────────── */
-/* ──────────────────────────────────────────────────────────────
- /* ──────────────────────────────────────────────────────────────
-   Service Worker: auto-update + auto-reload
-   ────────────────────────────────────────────────────────────── */
 if ('serviceWorker' in navigator) {
   // Auto-reload όταν αλλάξει ο controller (νέος SW ενεργός)
   let refreshing = false;
@@ -839,22 +835,6 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
 
-  navigator.serviceWorker.register('sw.js').then(reg => {
-    // Αν υπάρχει ήδη update σε αναμονή → στείλε SKIP_WAITING
-    if (reg.waiting) {
-      reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-    }
-    // Αν βγει νέος SW → στείλε SKIP_WAITING
-    reg.addEventListener('updatefound', () => {
-      const newSW = reg.installing;
-      newSW?.addEventListener('statechange', () => {
-        if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
-          newSW.postMessage({ type: 'SKIP_WAITING' });
-        }
-      });
-    });
-  }).catch(() => {});
-}
   navigator.serviceWorker.register('sw.js').then(reg => {
     // Αν υπάρχει ήδη update σε αναμονή → στείλε SKIP_WAITING
     if (reg.waiting) {
